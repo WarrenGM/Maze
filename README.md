@@ -1,0 +1,1 @@
+Currently just generates a maze. Animations, solving, and more generation algorithms to come.
