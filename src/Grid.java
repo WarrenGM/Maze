@@ -4,10 +4,9 @@ import java.awt.Graphics;
 import java.util.HashSet;
 import java.util.Set;
 
-
 public class Grid {
 
-	protected GridVertex origin;
+	protected GridVertex origin, end;
 
 	protected int x, y, width;
 
@@ -15,7 +14,7 @@ public class Grid {
 	
 	protected Component component;
 	
-	//GridVertex[][] theGrid TODO;
+	protected GridVertex[][] theGrid;
 
 	public Grid(int x, int y, int cellWidth, int rows, int columns, Component component){
 		this.x = x;
@@ -27,30 +26,40 @@ public class Grid {
 		makeGrid();
 	}
 
-	protected void makeGrid(){
-		GridVertex[] prevRow = new GridVertex[columns];
-		GridVertex[] newRow = new GridVertex[columns];
+	/**
+	 * Makes a grid of {@link GridVertex}s.
+	 * 
+	 * @return A 2d array of {@link GridVertex}s containg each vertex.
+	 */
+	protected GridVertex[][] makeGrid(){
+		//GridVertex[] prevRow = new GridVertex[columns];
+		//GridVertex[] newRow = new GridVertex[columns];
+		
+		GridVertex[][] matrix = new GridVertex[rows][columns];
 
 		for(int i = 0; i < rows; i++){
-			newRow = new GridVertex[columns];
+			//newRow = new GridVertex[columns];
 			for(int j = 0; j < columns; j++){
 				//newRow is the i-th row.
-				newRow[j] = new GridVertex(x + j*width, y + i*width, width, new Color(240, 240, 240));
+				matrix[i][j] = new GridVertex(x + j*width, y + i*width, width, Color.LIGHT_GRAY);
 
 				if(j > 0){
-					newRow[j].setLeft(newRow[j-1]);
-					newRow[j - 1].setRight(newRow[j]);
+					matrix[i][j].setLeft(matrix[i][j-1]);
+					matrix[i][j - 1].setRight(matrix[i][j]);
 				}
 
 				if(i > 0){
-					newRow[j].setTop(prevRow[j]);
-					prevRow[j].setBottom(newRow[j]);
-				} else {
-					origin = newRow[0];
+					matrix[i][j].setTop(matrix[i - 1][j]);
+					matrix[i - 1][j].setBottom(matrix[i][j]);
 				}
 			}
-			prevRow = newRow;		
 		}
+		origin = matrix[0][0];
+		origin.setColor(Color.PINK);
+		end = matrix[rows - 1][columns - 1];
+		end.setColor(Color.BLUE);
+		
+		return (theGrid = matrix);
 	}
 
 	public Set<GridVertex> getVertexSet(){
@@ -69,6 +78,10 @@ public class Grid {
 		return theSet;
 	}
 	
+	public GridVertex[][] getTheGrid() {
+		return theGrid;
+	}
+
 	public void draw(Graphics pane){
 		for(GridVertex column = origin; column != null; column = column.getRight()){
 			for(GridVertex row = column; row != null; row = row.getBottom()){

@@ -7,7 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A node in a grid-graph.
+ * 
+ * @author Warren
+ */
 public class GridVertex {
+	/** The neighbors. There exists an edge from this vertex to any of the
+	 * 	following vertices that are not null.								 */
 	private GridVertex left, right, top, bottom;
 
 	private int x, y, width;
@@ -16,6 +23,13 @@ public class GridVertex {
 
 	private int visits = 0;
 	
+	/** The number of times in which this vertex was drawn.					*/
+	private int drawVisits;
+
+	/**
+	 * Holds whether or not the wall between the top (or other) node should be
+	 * drawn.
+	 */
 	private boolean topWall = true, bottomWall = true, 
 			leftWall = true, rightWall = true;
 
@@ -26,44 +40,39 @@ public class GridVertex {
 		this.color = color;
 	}
 
-	public boolean isCorner(){
-		return (left == null || right == null) && (top == null || bottom == null);
-	}
-
-	public boolean isBoundary(){
-		return left == null || right == null || top == null || bottom == null;
-	}
-
 	public void visit(){
 		visits++;
 	}
 
 	public void draw(Graphics pane){
+		drawVisits++;
+		
 		pane.setColor(color);
 		pane.fillRect(x, y, width, width);
 
-		pane.setColor(Color.BLACK);//TODO change to black
+		pane.setColor(Color.BLACK);
 		Graphics2D g = (Graphics2D)pane;
 		g.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
 		if(top == null || topWall){
-			//pane.fillRect(x - width/4, y - width/4, width + width/2, width/2);
 			g.drawLine(x, y, x + width, y);
 		}
 		if(right == null || rightWall){
-			//pane.fillRect(x + (width*3)/4, y - width/4, width/2, width + width/2);
 			g.drawLine(x + width, y, x + width, y + width);
 		}
 		if(bottom == null || bottomWall){
-			//pane.fillRect(x - width/4, y + (width*3)/4, width + width/2, width/2);
 			g.drawLine(x, y + width, x + width, y + width);
 		}
 		if(left == null || leftWall){
-			//pane.fillRect(x - width/4, y - width/4, width/2, width + width/2);
 			g.drawLine(x, y, x, y + width);
 		}
 	}
 	
+	/**
+	 * Removes the wall between this vertex and the given neighbor. The boolean
+	 * variable that determines whether or not the wall be drawn will be set to
+	 * false in this vertex and in neighbor.
+	 */
 	public void knockDownWall(GridVertex neighbor){
 		if(neighbor == null){
 			return;
@@ -84,6 +93,10 @@ public class GridVertex {
 		}
 	}
 
+	/**
+	 * A random, non-null neighbor.
+	 * @return null if this vertex has no neighbors.
+	 */
 	public GridVertex randomNeighbor(){
 		List<GridVertex> temp = new ArrayList<GridVertex>(4);
 
@@ -282,5 +295,13 @@ public class GridVertex {
 
 	public void setRightWall(boolean rightWall) {
 		this.rightWall = rightWall;
+	}
+	
+	public int getDrawVisits() {
+		return drawVisits;
+	}
+	
+	public void resetVisits(){
+		visits = 0;
 	}
 }
