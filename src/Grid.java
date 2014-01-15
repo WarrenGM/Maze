@@ -83,9 +83,14 @@ public class Grid {
 	}
 
 	public void draw(Graphics pane){
-		for(GridVertex column = origin; column != null; column = column.getRight()){
-			for(GridVertex row = column; row != null; row = row.getBottom()){
-				row.draw(pane);
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < columns; j++){
+				theGrid[i][j].drawCell(pane);
+			}
+		}
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < columns; j++){
+				theGrid[i][j].drawOutline(pane);
 			}
 		}
 	}

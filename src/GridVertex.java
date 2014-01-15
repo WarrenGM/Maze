@@ -2,6 +2,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +23,7 @@ public class GridVertex {
 	private Color color;
 
 	private int visits = 0;
-	
+
 	/** The number of times in which this vertex was drawn.					*/
 	private int drawVisits;
 
@@ -44,15 +45,17 @@ public class GridVertex {
 		visits++;
 	}
 
-	public void draw(Graphics pane){
-		drawVisits++;
-		
+	public void drawCell(Graphics pane){
 		pane.setColor(color);
 		pane.fillRect(x, y, width, width);
+	}
+
+	public void drawOutline(Graphics pane){
+		drawVisits++;
 
 		pane.setColor(Color.BLACK);
 		Graphics2D g = (Graphics2D)pane;
-		g.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+		g.setStroke(new BasicStroke(width/4, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER));
 
 		if(top == null || topWall){
 			g.drawLine(x, y, x + width, y);
@@ -67,7 +70,7 @@ public class GridVertex {
 			g.drawLine(x, y, x, y + width);
 		}
 	}
-	
+
 	/**
 	 * Removes the wall between this vertex and the given neighbor. The boolean
 	 * variable that determines whether or not the wall be drawn will be set to
@@ -77,7 +80,7 @@ public class GridVertex {
 		if(neighbor == null){
 			return;
 		}
-		
+
 		if(neighbor == bottom){
 			bottomWall = false;
 			bottom.setTopWall(false);
@@ -90,6 +93,26 @@ public class GridVertex {
 		} else if(neighbor == right){
 			rightWall = false;
 			right.setLeftWall(false);
+		}
+	}
+
+	public void raiseWall(GridVertex neighbor){
+		if(neighbor == null){
+			return;
+		}
+
+		if(neighbor == bottom){
+			bottomWall = true;
+			bottom.setTopWall(true);
+		} else if(neighbor == top){
+			topWall = true;
+			top.setBottomWall(true);
+		} else if(neighbor == left){
+			leftWall = true;
+			left.setRightWall(true);
+		} else if(neighbor == right){
+			rightWall = true;
+			right.setLeftWall(true);
 		}
 	}
 
@@ -134,7 +157,7 @@ public class GridVertex {
 
 		return temp;
 	}
-	
+
 	public Set<GridVertex> getWalledSet(){
 		Set<GridVertex> temp = new HashSet<GridVertex>(4);
 
@@ -149,7 +172,22 @@ public class GridVertex {
 
 		return temp;
 	}
-	
+
+	public Set<GridVertex> getUnWalledSet(){
+		Set<GridVertex> temp = new HashSet<GridVertex>(4);
+
+		if(top != null && !topWall)
+			temp.add(top);
+		if(right != null && !rightWall)
+			temp.add(right);
+		if(bottom != null && !bottomWall)
+			temp.add(bottom);
+		if(left != null && !leftWall)
+			temp.add(left);
+
+		return temp;
+	}
+
 	/**
 	 * Returns a set containing all non-null neighbors that have been visited
 	 * fewer times than this vertex.
@@ -169,6 +207,22 @@ public class GridVertex {
 		return temp;
 	}
 
+	public Set<GridVertex> getConnectedSet(){
+		return getConnectedSet(this, new HashSet<GridVertex>());
+	}
+
+	private Set<GridVertex> getConnectedSet(GridVertex vertex, Set<GridVertex> theSet){
+		theSet.add(vertex);
+
+		for(GridVertex v : vertex.getUnWalledSet()){
+			if(theSet.add(v)){
+				getConnectedSet(v, theSet);
+			}
+		}
+
+		return theSet;
+	}
+
 	public GridVertex getLeft(){
 		return left;
 	}
@@ -176,7 +230,7 @@ public class GridVertex {
 	public void setLeft(GridVertex left){
 		this.left = left;
 	}
-	
+
 	public void removeLeft(){
 		if(left != null){
 			left.setRight(null);
@@ -191,7 +245,7 @@ public class GridVertex {
 	public void setRight(GridVertex right){
 		this.right = right;
 	}
-	
+
 	public void removeRight(){
 		if(right != null){
 			right.setLeft(null);
@@ -206,7 +260,7 @@ public class GridVertex {
 	public void setTop(GridVertex top){
 		this.top = top;
 	}
-	
+
 	public void removeTop(){
 		if(top != null){
 			top.setBottom(null);
@@ -221,7 +275,7 @@ public class GridVertex {
 	public void setBottom(GridVertex bottom){
 		this.bottom = bottom;
 	}
-	
+
 	public void removeBottom(){
 		if(bottom != null){
 			bottom.setTop(null);
@@ -296,11 +350,11 @@ public class GridVertex {
 	public void setRightWall(boolean rightWall) {
 		this.rightWall = rightWall;
 	}
-	
+
 	public int getDrawVisits() {
 		return drawVisits;
 	}
-	
+
 	public void resetVisits(){
 		visits = 0;
 	}

@@ -59,7 +59,7 @@ public class Panel extends JPanel implements KeyListener {
 		
 		if(shift){
 			if(e.getKeyCode() == KeyEvent.VK_0){
-				cellSize = 5;
+				cellSize = 4;
 			} else if(e.getKeyCode() == KeyEvent.VK_1){
 				cellSize = 10;
 			} else if(e.getKeyCode() == KeyEvent.VK_2){
@@ -82,8 +82,25 @@ public class Panel extends JPanel implements KeyListener {
 				return;
 			}
 
-			rows = (int)(getHeight()/(cellSize + 1));
-			columns = (int)(getWidth()/(cellSize + 1));
+			rows = (int)(getHeight()/(cellSize));
+			columns = (int)(getWidth()/(cellSize));
+			
+			while(cellSize*rows > getHeight() - 20){
+				rows--;
+			}
+			
+			while(cellSize*columns > getWidth() - 20){
+				columns--;
+			}
+			
+			/*while(rows * columns > 42000){//Arbitrary limit to prevent overflows
+				rows--;
+				columns--;
+			}*/
+			
+			System.out.println("Area: " + (rows * columns));
+			
+			delay = cellSize;
 			
 			maze = new Maze(10, 10, cellSize, rows, columns, this, delay);
 			repaint();
@@ -115,10 +132,8 @@ public class Panel extends JPanel implements KeyListener {
 			maze.setDelay(delay);
 			repaint();
 		}
-
-		System.out.println("Space?");
+		
 		if(e.getKeyCode() == KeyEvent.VK_SPACE){
-			System.out.println("Yes");
 			new Thread(new Runnable(){
 				public void run(){
 					System.out.println("New Thread");

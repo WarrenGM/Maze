@@ -9,6 +9,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Stack;
 
@@ -32,6 +33,8 @@ public class Maze extends Grid {
 	/** Holds the name of the method used to generate the maze.				 */
 	private String method = "";
 
+	private Color green = new Color(0, 255, 0);
+
 	public Maze(int x, int y, int cellWidth, int rows, int columns, Component component){
 		this(x, y, cellWidth, rows, columns, component, 50);
 	}
@@ -44,21 +47,32 @@ public class Maze extends Grid {
 
 	public synchronized void generate(){
 		System.out.println("Generating");
+		makeGrid();
 
 		solved = false;
 		double rand = Math.random();
-		if(rand < 0.25){
-			method = "Alduos Broder";
+		
+		recursiveDivisionAlgo();
+		if(rand < 2){
+			return;
+		}
+		
+		if(rand < 0.05){ //Alduos-Broder isn't liked very much.
+			method = "Alduos-Broder";
 			alduosBroderAlgo();
-		} else if(rand < 0.5){
+		} else if(rand < 0.25){
 			method = "Prim's";
 			primsAlgo();
-		} else if (rand < .75){
+		} else if(rand < 0.50){
 			method = "Hunt and Kill";
 			huntAndKillAlgo();
-		} else {
-			method = "Recursive Backtracker";
+		} else if(rand < 0.75){
+			method = "DFS / Backtracker";
 			backtrackerAlgo();
+			//knockDownRandomWalls();
+		} else {
+			method = "Recursive Division";
+			recursiveDivisionAlgo();
 		}
 	}
 
@@ -72,7 +86,7 @@ public class Maze extends Grid {
 
 
 		int randI = (int)(Math.random()*rows), randJ = (int)(Math.random()*columns);
-		GridVertex current = grid[randI][randJ];;
+		GridVertex current = grid[randI][randJ];
 		Stack<GridVertex> stack = new Stack<GridVertex>();
 
 		current.visit();
@@ -95,7 +109,7 @@ public class Maze extends Grid {
 				} else {
 					current = stack.pop();
 				}
-				current.setColor(Color.CYAN);
+				current.setColor(green);
 			} else {
 				stack.push(current);
 
@@ -106,7 +120,7 @@ public class Maze extends Grid {
 				current = chosen;
 				current.visit();
 
-				current.setColor(Color.CYAN);
+				current.setColor(green);
 			}
 		}
 
@@ -122,25 +136,33 @@ public class Maze extends Grid {
 	}
 
 	private void primsAlgo(){
-		makeGrid();
+		GridVertex[][] grid = makeGrid();
 		repaint();
 
 		Set<GridVertex> maze = new HashSet<GridVertex>();
-		maze.add(origin);
 
 		Set<GridVertex> frontier = new HashSet<GridVertex>();
-		frontier.addAll(origin.getNeighborSet());
-		origin.setColor(Color.WHITE);
+
+		int randI = (int)(Math.random()*rows), randJ = (int)(Math.random()*columns);
+		GridVertex current = grid[randI][randJ];
+
+		maze.add(current);
+
+		frontier.addAll(current.getNeighborSet());
+		current.setColor(Color.WHITE);
 
 		//We color the frontier
 		for(GridVertex v : frontier){
-			v.setColor(Color.RED);
+			v.setColor(Color.CYAN);
 		}
 		repaint();
 		while(!frontier.isEmpty()){
-			repaint();
+			//repaint();
 
-			GridVertex current = frontier.iterator().next();//TODO Make more random.
+			//A random cell in the frontier which is not part of the maze yet.
+			current = frontier.iterator().next();//TODO Make this more random.
+			current.setColor(Color.RED);
+			repaint();
 
 			Set<GridVertex> temp = current.getNeighborSet();
 			temp.retainAll(maze);
@@ -174,7 +196,7 @@ public class Maze extends Grid {
 		int visits = origin.getVisits();
 
 		GridVertex current = origin;
-		current.setColor(Color.CYAN);
+		current.setColor(green);
 
 		while(visited < numOfVertices){
 			repaint();
@@ -188,7 +210,7 @@ public class Maze extends Grid {
 				current.knockDownWall(next);
 			}
 			current.setColor(Color.WHITE);
-			next.setColor(Color.CYAN);
+			next.setColor(green);
 			current = next;
 		}
 		current.setColor(Color.WHITE);
@@ -197,7 +219,6 @@ public class Maze extends Grid {
 	}
 
 	private void huntAndKillAlgo(){
-		GridVertex[][] grid = makeGrid();
 		repaint();
 
 		Set<GridVertex> unVisited = getVertexSet();
@@ -224,20 +245,19 @@ public class Maze extends Grid {
 					int i = (int)(Math.random()*rows);
 					int j = (int)(Math.random()*columns);
 
-					found = grid[i][j].getVisits() < visits;
-					Set<GridVertex> temp = grid[i][j].getNeighborSet();
+					found = theGrid[i][j].getVisits() < visits;
+					Set<GridVertex> temp = theGrid[i][j].getNeighborSet();
 					temp.removeAll(unVisited);
 					found &= temp.size() > 0;
 
 					if(found){
-						current = grid[i][j];
+						current = theGrid[i][j];
 						current.knockDownWall(temp.iterator().next());
 						unVisited.remove(current);
 						current.visit();
 					}
 				}
-				System.out.println(found);
-				current.setColor(Color.CYAN);
+				current.setColor(green);
 			} else {
 				GridVertex chosen = tempSet.iterator().next();
 				current.knockDownWall(chosen);
@@ -247,7 +267,7 @@ public class Maze extends Grid {
 				current = chosen;
 				current.visit();
 
-				current.setColor(Color.CYAN);
+				current.setColor(green);
 			}
 		}
 
@@ -255,6 +275,150 @@ public class Maze extends Grid {
 
 		System.out.println("Generated");
 		component.repaint();
+	}
+	
+	private static double randomNum(){
+		return (Math.random() + Math.random())/2;
+	}
+
+	private void recursiveDivisionAlgo(){
+		knockDownAllWalls(origin);
+		recursiveDivisionAlgo(0, rows - 1, 0, columns - 1, 0.5 + randomNum()/2);
+		//uniteCells();
+		System.out.println("Done!");
+	}
+
+	private void recursiveDivisionAlgo(int top, int bottom, int left, int right,
+			double texture){
+		if(bottom - top < 1 || right - left < 1){
+			return;
+		}
+		
+		
+		//The following Math.random() conditions slightly vary the texture of
+		//the maze.
+		
+		int height = bottom - top, width = right - left;
+		boolean verticalLine = width > height;
+		
+		//Math.random() < (texture)/Math.log(1 + width * height)
+		if(Math.random() < Math.pow(texture, Math.cbrt(width * height))){
+			verticalLine = !verticalLine;
+		}
+		
+		if(height < 3){
+			verticalLine = Math.random() > texture;
+		} else if(width < 3){
+			verticalLine = Math.random() < texture;
+		}
+		
+		if(!verticalLine){
+			//Note: bottom > top because the origin is in the top left.
+			int randRow = top + (int)(Math.random()*(bottom - top));
+			int skipColumn = left + (int)(Math.random()*(right - left));
+
+			for(int i = top; i <= bottom; i++){
+				for(int j = left; j <= right; j++){
+					theGrid[i][j].setColor(green);
+				}
+			}
+			repaint();
+
+			for(int i = left; i <= right; i ++){
+				if(i != skipColumn){
+					theGrid[randRow][i].raiseWall(theGrid[randRow + 1][i]);
+					repaint();
+				}
+			}
+
+			repaint();
+
+			for(int i = top; i <= bottom; i++){
+				for(int j = left; j <= right; j++){
+					theGrid[i][j].setColor(Color.WHITE);
+				}
+			}
+			//repaint();
+
+			recursiveDivisionAlgo(top, randRow, left, right, texture);
+			recursiveDivisionAlgo(randRow + 1, bottom, left, right, texture);
+
+		} else if(right - left > 0){
+
+			int randColumn = left + (int)(Math.random()*(right - left));
+			int skipRow = top + (int)(Math.random()*(bottom - top));
+
+			for(int i = top; i <= bottom; i++){
+				for(int j = left; j <= right; j++){
+					theGrid[i][j].setColor(green);
+				}
+			}
+			repaint();
+
+
+			for(int i = top; i <= bottom; i ++){
+				if(i != skipRow){
+					theGrid[i][randColumn].raiseWall(theGrid[i][randColumn + 1]);
+					repaint();
+				}
+			}
+
+			repaint();
+
+			for(int i = top; i <= bottom; i++){
+				for(int j = left; j <= right; j++){
+					theGrid[i][j].setColor(Color.WHITE);
+				}
+			}
+			//repaint();
+
+			recursiveDivisionAlgo(top, bottom, left, randColumn, texture);
+			recursiveDivisionAlgo(top, bottom, randColumn + 1, right, texture);
+
+		}
+	}
+
+	private void knockDownAllWalls(GridVertex vertex){
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < columns; j++){
+				for(GridVertex v : theGrid[i][j].getWalledSet()){
+					theGrid[i][j].knockDownWall(v);
+					theGrid[i][j].setColor(Color.WHITE);
+				}
+			}
+		}
+	}
+
+	private void knockDownRandomWalls(){
+		int ln = (int)(Math.random()*(Math.sqrt(rows * columns)));
+		for(int i = 0; i < ln; i++){
+			int randI = (int)(Math.random()*rows), randJ = (int)(Math.random()*columns);
+
+			try {
+				Thread.sleep(delay * delay);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			if(theGrid[randI][randJ].getWalledSet().size() > 1){
+				if(theGrid[randI][randJ].getColor() == Color.RED){
+					continue;
+				}
+				
+				theGrid[randI][randJ].setColor(Color.RED);
+				repaint();
+				
+				GridVertex target = theGrid[randI][randJ].getWalledSet().iterator().next();
+				if(target.getWalledSet().size() > 1){
+					theGrid[randI][randJ].knockDownWall(target);
+					target.setColor(Color.RED);
+				} else {
+					theGrid[randI][randJ].setColor(Color.WHITE);
+				}
+			}
+			repaint();
+		}
 	}
 
 	public void solve(){
@@ -266,7 +430,7 @@ public class Maze extends Grid {
 
 		GridVertex current = origin;
 		Deque<GridVertex> deque = new LinkedList<GridVertex>();
-		current.setColor(Color.GREEN);
+		current.setColor(green);
 		current.visit();
 
 		while(current != end){
@@ -278,7 +442,19 @@ public class Maze extends Grid {
 
 			if(tempSet.isEmpty()){
 				current.setColor(Color.WHITE);
-				current = deque.pop();
+
+				try {
+					current = deque.pop();
+				} catch(NoSuchElementException e){
+					for(int i = 0; i < 40; i++){
+						System.out.print("*");
+					}
+					System.out.println("\nNo solution exists.");
+					for(int i = 0; i < 40; i++){
+						System.out.print("*");
+					}
+					return;
+				}
 			} else {
 				deque.push(current);
 
@@ -287,7 +463,7 @@ public class Maze extends Grid {
 				current.visit();
 			}
 			if(solved){
-				current.setColor(Color.GREEN);
+				current.setColor(green);
 			}
 		}
 
@@ -302,8 +478,6 @@ public class Maze extends Grid {
 
 	@Override
 	public void draw(Graphics pane){
-		draw(pane, origin, origin.getDrawVisits());
-
 		//Next we draw the method name.
 		Graphics2D g = (Graphics2D)pane;
 		g.setColor(Color.RED);
@@ -320,17 +494,8 @@ public class Maze extends Grid {
 
 		g.setColor(Color.WHITE);
 		g.drawString(method, 15, component.getHeight() - 5);
-	}
-
-	private void draw(Graphics pane, GridVertex vertex, int visits){
-		vertex.draw(pane);
-		//vertex.visit();
-
-		for(GridVertex v : vertex.getNeighborSet()){
-			if(v.getDrawVisits() == visits){
-				draw(pane, v, visits);
-			}
-		}
+		
+		super.draw(pane);
 	}
 
 	public void repaint(){
@@ -347,7 +512,7 @@ public class Maze extends Grid {
 	}
 
 	public void setDelay(int delay){
-		this.delay = Math.max(0, delay - (int)Math.log(rows * columns));
+		this.delay = Math.max(delay, delay - (int)Math.log(rows * columns));//TODO
 		System.out.println("Delay: " + this.delay);
 	}
 }
